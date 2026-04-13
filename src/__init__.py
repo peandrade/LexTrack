@@ -39,4 +39,6 @@ def create_app(config_name: str | None = None) -> Flask:
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
 
+    from src.models import Contract, Party, AlertConfig, AuditLog
+
     return app

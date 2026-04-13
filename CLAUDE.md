@@ -1,15 +1,15 @@
 # LexTrack — Gestão de Contratos e Vencimentos Jurídicos
 
 ## Estado Atual do Projeto
-- **Etapa em execução:** 1 - SETUP
+- **Etapa em execução:** 2 - MODELS
 - **Branch atual:** feature/setup
-- **Última etapa concluída:** —
+- **Última etapa concluída:** 1 - SETUP
 
 ## Etapas do Plano
 
 | # | Etapa | Status |
 |---|-------|--------|
-| 1 | SETUP - Estrutura de pastas, virtualenv, dependências | 🔄 Em andamento |
+| 1 | SETUP - Estrutura de pastas, virtualenv, dependências | ✅ Concluída |
 | 2 | MODELS - Modelos SQLAlchemy | ⏳ Pendente |
 | 3 | ROUTES - Blueprint contracts CRUD | ⏳ Pendente |
 | 4 | SCHEDULER - APScheduler para alertas | ⏳ Pendente |
