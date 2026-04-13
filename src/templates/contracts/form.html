@@ -12,11 +12,25 @@
         <h1 class="text-2xl font-bold text-gray-800">{% if contract %}Editar Contrato{% else %}Novo Contrato{% endif %}</h1>
     </div>
 
+    {% if not contract %}
+    <div class="px-6 py-4 bg-indigo-50 border-b border-indigo-100">
+        <h3 class="text-sm font-medium text-indigo-800 mb-2">Importar dados de PDF</h3>
+        <div class="flex items-center gap-4">
+            <input type="file" id="pdf-upload" accept=".pdf" class="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-indigo-600 file:text-white file:cursor-pointer hover:file:bg-indigo-700">
+            <button type="button" onclick="extractFromPdf()" id="extract-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50">
+                Extrair Datas
+            </button>
+            <span id="extract-status" class="text-sm text-gray-500"></span>
+        </div>
+        <p class="text-xs text-indigo-600 mt-2">Envie um PDF de contrato para extrair automaticamente as datas de inicio, vencimento e assinatura.</p>
+    </div>
+    {% endif %}
+
     <form method="POST" class="px-6 py-4 space-y-6">
         <div class="grid grid-cols-2 gap-6">
             <div class="col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Titulo *</label>
-                <input type="text" name="title" value="{{ contract.title if contract else '' }}" required
+                <input type="text" name="title" id="title" value="{{ contract.title if contract else '' }}" required
                        class="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
 
@@ -39,25 +53,25 @@
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Data de Inicio *</label>
-                <input type="date" name="start_date" value="{{ contract.start_date.isoformat() if contract else '' }}" required
+                <input type="date" name="start_date" id="start_date" value="{{ contract.start_date.isoformat() if contract else '' }}" required
                        class="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Data de Vencimento *</label>
-                <input type="date" name="end_date" value="{{ contract.end_date.isoformat() if contract else '' }}" required
+                <input type="date" name="end_date" id="end_date" value="{{ contract.end_date.isoformat() if contract else '' }}" required
                        class="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Data de Assinatura</label>
-                <input type="date" name="signing_date" value="{{ contract.signing_date.isoformat() if contract and contract.signing_date else '' }}"
+                <input type="date" name="signing_date" id="signing_date" value="{{ contract.signing_date.isoformat() if contract and contract.signing_date else '' }}"
                        class="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Valor (R$)</label>
-                <input type="number" name="value" step="0.01" value="{{ contract.value if contract and contract.value else '' }}"
+                <input type="number" name="value" id="value" step="0.01" value="{{ contract.value if contract and contract.value else '' }}"
                        class="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
 
@@ -163,6 +177,75 @@
 
 {% block scripts %}
 <script>
+async function extractFromPdf() {
+    const fileInput = document.getElementById('pdf-upload');
+    const status = document.getElementById('extract-status');
+    const btn = document.getElementById('extract-btn');
+
+    if (!fileInput.files.length) {
+        status.textContent = 'Selecione um arquivo PDF primeiro.';
+        status.className = 'text-sm text-red-500';
+        return;
+    }
+
+    btn.disabled = true;
+    status.textContent = 'Extraindo dados...';
+    status.className = 'text-sm text-gray-500';
+
+    const formData = new FormData();
+    formData.append('pdf', fileInput.files[0]);
+
+    try {
+        const response = await fetch('{{ url_for("contracts.extract_pdf") }}', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+
+        if (data.error) {
+            status.textContent = 'Erro: ' + data.error;
+            status.className = 'text-sm text-red-500';
+            return;
+        }
+
+        let filled = [];
+
+        if (data.dates.start_date) {
+            document.getElementById('start_date').value = data.dates.start_date;
+            filled.push('inicio');
+        }
+        if (data.dates.end_date) {
+            document.getElementById('end_date').value = data.dates.end_date;
+            filled.push('vencimento');
+        }
+        if (data.dates.signing_date) {
+            document.getElementById('signing_date').value = data.dates.signing_date;
+            filled.push('assinatura');
+        }
+        if (data.value) {
+            document.getElementById('value').value = data.value;
+            filled.push('valor');
+        }
+
+        if (filled.length > 0) {
+            status.textContent = 'Extraido: ' + filled.join(', ');
+            status.className = 'text-sm text-green-600';
+        } else {
+            status.textContent = 'Nenhuma data encontrada no PDF.';
+            status.className = 'text-sm text-yellow-600';
+        }
+
+        if (data.dates.all_dates && data.dates.all_dates.length > 0) {
+            console.log('Todas as datas encontradas:', data.dates.all_dates);
+        }
+    } catch (error) {
+        status.textContent = 'Erro ao processar PDF.';
+        status.className = 'text-sm text-red-500';
+    }
+
+    btn.disabled = false;
+}
+
 function addPartyRow() {
     const container = document.getElementById('parties-container');
     const row = document.createElement('div');

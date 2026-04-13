@@ -1,7 +1,10 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
 from src import db
 from src.models import Contract, Party, AlertConfig, AuditLog
 from datetime import datetime
+from pathlib import Path
+from werkzeug.utils import secure_filename
+import uuid
 
 bp = Blueprint("contracts", __name__, url_prefix="/contracts")
 
@@ -179,3 +182,43 @@ def _log_action(entity_type: str, entity_id: int, action: str, changes: dict | N
         ip_address=request.remote_addr
     )
     db.session.add(log)
+
+
+@bp.route("/api/extract-pdf", methods=["POST"])
+def extract_pdf():
+    if "pdf" not in request.files:
+        return jsonify({"error": "Nenhum arquivo enviado"}), 400
+
+    file = request.files["pdf"]
+    if file.filename == "":
+        return jsonify({"error": "Nenhum arquivo selecionado"}), 400
+
+    if not file.filename.lower().endswith(".pdf"):
+        return jsonify({"error": "Arquivo deve ser PDF"}), 400
+
+    upload_dir = Path(current_app.instance_path) / "uploads"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+
+    filename = f"{uuid.uuid4()}_{secure_filename(file.filename)}"
+    filepath = upload_dir / filename
+    file.save(filepath)
+
+    try:
+        from src.services.pdf_extractor import extract_dates_from_pdf, extract_contract_value
+
+        dates = extract_dates_from_pdf(filepath)
+        value = extract_contract_value(filepath)
+
+        return jsonify({
+            "success": True,
+            "filepath": str(filepath),
+            "dates": {
+                "start_date": dates.start_date.isoformat() if dates.start_date else None,
+                "end_date": dates.end_date.isoformat() if dates.end_date else None,
+                "signing_date": dates.signing_date.isoformat() if dates.signing_date else None,
+                "all_dates": [d.isoformat() for d in dates.all_dates]
+            },
+            "value": value
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
