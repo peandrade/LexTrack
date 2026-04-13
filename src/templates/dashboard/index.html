@@ -3,7 +3,12 @@
 {% block title %}Dashboard - LexTrack{% endblock %}
 
 {% block content %}
-<h1 class="text-2xl font-bold text-gray-800 mb-6">Dashboard</h1>
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold text-gray-800">Dashboard</h1>
+    <button onclick="checkAlerts()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">
+        Verificar Alertas
+    </button>
+</div>
 
 <div class="grid grid-cols-4 gap-6 mb-8">
     <div class="bg-white rounded-lg shadow p-6">
@@ -104,6 +109,30 @@ async function loadExpiring() {
             </a>
         `;
     }).join('');
+}
+
+async function checkAlerts() {
+    const btn = event.target;
+    btn.disabled = true;
+    btn.textContent = 'Verificando...';
+
+    try {
+        const response = await fetch('{{ url_for("dashboard.check_alerts") }}', { method: 'POST' });
+        const data = await response.json();
+
+        let message = `Verificados: ${data.checked} contratos\n`;
+        if (data.alerts_sent.length > 0) {
+            message += `Alertas enviados: ${data.alerts_sent.length}`;
+        } else {
+            message += 'Nenhum alerta para enviar hoje.';
+        }
+        alert(message);
+    } catch (error) {
+        alert('Erro ao verificar alertas: ' + error.message);
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Verificar Alertas';
 }
 
 loadStats();

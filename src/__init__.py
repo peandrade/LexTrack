@@ -49,4 +49,8 @@ def create_app(config_name: str | None = None) -> Flask:
     app.register_blueprint(dashboard.bp)
     app.register_blueprint(contracts.bp)
 
+    if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+        from src.services.scheduler import init_scheduler
+        init_scheduler(app)
+
     return app
