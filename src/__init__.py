@@ -39,6 +39,14 @@ def create_app(config_name: str | None = None) -> Flask:
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
 
+    @login_manager.user_loader
+    def load_user(user_id: str):
+        return None
+
     from src.models import Contract, Party, AlertConfig, AuditLog
+
+    from src.routes import contracts, dashboard
+    app.register_blueprint(dashboard.bp)
+    app.register_blueprint(contracts.bp)
 
     return app

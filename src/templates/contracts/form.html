@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}{% if contract %}Editar{% else %}Novo{% endif %} Contrato - LexTrack{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="{{ url_for('contracts.index') }}" class="text-indigo-600 hover:text-indigo-900">&larr; Voltar para lista</a>
+</div>
+
+<div class="bg-white rounded-lg shadow">
+    <div class="px-6 py-4 border-b border-gray-200">
+        <h1 class="text-2xl font-bold text-gray-800">{% if contract %}Editar Contrato{% else %}Novo Contrato{% endif %}</h1>
+    </div>
+
+    <form method="POST" class="px-6 py-4 space-y-6">
+        <div class="grid grid-cols-2 gap-6">
+            <div class="col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Titulo *</label>
+                <input type="text" name="title" value="{{ contract.title if contract else '' }}" required
+                       class="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Numero do Contrato</label>
+                <input type="text" name="contract_number" value="{{ contract.contract_number if contract and contract.contract_number else '' }}"
+                       class="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Tipo *</label>
+                <select name="contract_type" required class="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="">Selecione...</option>
+                    {% set types = ['Prestacao de Servicos', 'Compra e Venda', 'Locacao', 'Parceria', 'Fornecimento', 'Consultoria', 'Licenciamento', 'Outro'] %}
+                    {% for type in types %}
+                    <option value="{{ type }}" {% if contract and contract.contract_type == type %}selected{% endif %}>{{ type }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data de Inicio *</label>
+                <input type="date" name="start_date" value="{{ contract.start_date.isoformat() if contract else '' }}" required
+                       class="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data de Vencimento *</label>
+                <input type="date" name="end_date" value="{{ contract.end_date.isoformat() if contract else '' }}" required
+                       class="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data de Assinatura</label>
+                <input type="date" name="signing_date" value="{{ contract.signing_date.isoformat() if contract and contract.signing_date else '' }}"
+                       class="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Valor (R$)</label>
+                <input type="number" name="value" step="0.01" value="{{ contract.value if contract and contract.value else '' }}"
+                       class="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            {% if contract %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select name="status" class="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="active" {% if contract.status == 'active' %}selected{% endif %}>Ativo</option>
+                    <option value="expired" {% if contract.status == 'expired' %}selected{% endif %}>Encerrado</option>
+                    <option value="cancelled" {% if contract.status == 'cancelled' %}selected{% endif %}>Cancelado</option>
+                </select>
+            </div>
+            {% endif %}
+
+            <div class="col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Descricao</label>
+                <textarea name="description" rows="3"
+                          class="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">{{ contract.description if contract and contract.description else '' }}</textarea>
+            </div>
+
+            <div class="col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Observacoes</label>
+                <textarea name="notes" rows="2"
+                          class="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">{{ contract.notes if contract and contract.notes else '' }}</textarea>
+            </div>
+        </div>
+
+        <div class="border-t border-gray-200 pt-6">
+            <h3 class="text-lg font-medium text-gray-800 mb-4">Partes Envolvidas</h3>
+            <div id="parties-container" class="space-y-4">
+                {% if contract and contract.parties %}
+                    {% for party in contract.parties %}
+                    <div class="party-row grid grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+                        <input type="text" name="party_name[]" value="{{ party.name }}" placeholder="Nome"
+                               class="border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <select name="party_type[]" class="border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="contratante" {% if party.party_type == 'contratante' %}selected{% endif %}>Contratante</option>
+                            <option value="contratado" {% if party.party_type == 'contratado' %}selected{% endif %}>Contratado</option>
+                            <option value="interveniente" {% if party.party_type == 'interveniente' %}selected{% endif %}>Interveniente</option>
+                            <option value="fiador" {% if party.party_type == 'fiador' %}selected{% endif %}>Fiador</option>
+                        </select>
+                        <input type="text" name="party_document[]" value="{{ party.document or '' }}" placeholder="CPF/CNPJ"
+                               class="border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="email" name="party_email[]" value="{{ party.email or '' }}" placeholder="E-mail"
+                               class="border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="party-row grid grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+                    <input type="text" name="party_name[]" placeholder="Nome"
+                           class="border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <select name="party_type[]" class="border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="contratante">Contratante</option>
+                        <option value="contratado">Contratado</option>
+                        <option value="interveniente">Interveniente</option>
+                        <option value="fiador">Fiador</option>
+                    </select>
+                    <input type="text" name="party_document[]" placeholder="CPF/CNPJ"
+                           class="border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <input type="email" name="party_email[]" placeholder="E-mail"
+                           class="border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                {% endif %}
+            </div>
+            <button type="button" onclick="addPartyRow()" class="mt-4 text-indigo-600 hover:text-indigo-900">+ Adicionar parte</button>
+        </div>
+
+        <div class="border-t border-gray-200 pt-6">
+            <h3 class="text-lg font-medium text-gray-800 mb-4">Configuracao de Alertas</h3>
+            <div class="grid grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Dias de antecedencia</label>
+                    <input type="text" name="alert_days" value="{{ contract.alert_config.alert_days if contract and contract.alert_config else '90,60,30,15,7,1' }}"
+                           placeholder="90,60,30,15,7,1"
+                           class="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <p class="text-xs text-gray-500 mt-1">Separe os dias por virgula</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">E-mails para alerta</label>
+                    <input type="text" name="email_recipients" value="{{ contract.alert_config.email_recipients if contract and contract.alert_config and contract.alert_config.email_recipients else '' }}"
+                           placeholder="email1@exemplo.com, email2@exemplo.com"
+                           class="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="col-span-2">
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="alerts_active" {% if not contract or (contract.alert_config and contract.alert_config.is_active) %}checked{% endif %}
+                               class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        <span class="ml-2 text-sm text-gray-700">Ativar alertas por e-mail</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="border-t border-gray-200 pt-6 flex justify-end space-x-4">
+            <a href="{{ url_for('contracts.index') }}" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">Cancelar</a>
+            <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">
+                {% if contract %}Salvar Alteracoes{% else %}Criar Contrato{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function addPartyRow() {
+    const container = document.getElementById('parties-container');
+    const row = document.createElement('div');
+    row.className = 'party-row grid grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg';
+    row.innerHTML = `
+        <input type="text" name="party_name[]" placeholder="Nome"
+               class="border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <select name="party_type[]" class="border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="contratante">Contratante</option>
+            <option value="contratado">Contratado</option>
+            <option value="interveniente">Interveniente</option>
+            <option value="fiador">Fiador</option>
+        </select>
+        <input type="text" name="party_document[]" placeholder="CPF/CNPJ"
+               class="border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <input type="email" name="party_email[]" placeholder="E-mail"
+               class="border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+    `;
+    container.appendChild(row);
+}
+</script>
+{% endblock %}
